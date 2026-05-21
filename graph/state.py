@@ -29,3 +29,5 @@ class TravelState(TypedDict):
 
     # Errors or status
     error: Optional[str]
+
+    retry_count: int
