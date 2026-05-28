@@ -3,16 +3,19 @@ from tools.availability_check import check_availability
 
 
 def availability_checker_agent(state: TravelState):
-    # Safely get the current retry count, defaulting to 0 if missing
+
+    # Current retry count
     current_retry = state.get("retry_count", 0)
-    
-    # Extract required inputs from state
+
+    # Inputs from state
     hotels_found = state.get("hotels_found", [])
+
     check_in = state.get("check_in")
     check_out = state.get("check_out")
+
     budget = state.get("budget", 0)
 
-    # Filter available hotels
+    # Filter hotels
     available_hotels = check_availability(
         hotels=hotels_found,
         check_in=check_in,
@@ -20,13 +23,21 @@ def availability_checker_agent(state: TravelState):
         max_budget=budget
     )
 
-    # Determine the new retry count
+    # Retry logic
     new_retry_count = current_retry
+
     if not available_hotels:
         new_retry_count += 1
 
-    # Return the updates cleanly to LangGraph
+    # Auto-select best hotel
+    selected_hotel = None
+
+    if available_hotels:
+        selected_hotel = available_hotels[0]
+
+    # Return updates
     return {
         "available_hotels": available_hotels,
+        "selected_hotel": selected_hotel,
         "retry_count": new_retry_count
     }

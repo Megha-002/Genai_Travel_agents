@@ -1,3 +1,6 @@
+from typing import List
+from datetime import datetime, timedelta
+from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
 
@@ -6,15 +9,29 @@ from tools.tavily_search import tavily_search
 
 from dotenv import load_dotenv
 import os
-import json
 
 load_dotenv()
 
+# 1. Define the desired output structure using Pydantic
+class Hotel(BaseModel):
+    name: str = Field(description="The name of the hotel")
+    price: float = Field(description="The price per night, numeric value only")
+    rating: float = Field(description="The hotel rating out of 5 stars, numeric value only")
+    link: str = Field(description="The booking URL or link for the hotel")
 
+class HotelList(BaseModel):
+    hotels: List[Hotel] = Field(description="A list of extracted hotels matching the criteria")
+
+
+# 2. Initialize the LLM and bind the structure
 llm = ChatGroq(
     groq_api_key=os.getenv("GROQ_API_KEY"),
-    model="llama-3.1-8b-instant"
+    model="llama-3.1-8b-instant",
+    temperature=0  # Lower temperature guarantees higher adherence to structure
 )
+
+# This forces the model to strictly follow your Pydantic model structure
+structured_llm = llm.with_structured_output(HotelList)
 
 
 def hotel_finder_agent(state: TravelState):
@@ -35,46 +52,50 @@ def hotel_finder_agent(state: TravelState):
         """
     )
 
-    # LLM prompt to structure hotel data
+    # Simplified LLM prompt (No need to give markdown examples anymore!)
     prompt = f"""
     You are a hotel data extraction assistant.
-
-    Extract hotels from the search results.
-
-    Return ONLY valid JSON list format.
-
-    Each hotel must contain:
-    - name
-    - price
-    - rating
-    - link
-
-    Example:
-
-    [
-        {{
-            "name": "Hotel Paradise",
-            "price": 120,
-            "rating": 4.5,
-            "link": "https://example.com"
-        }}
-    ]
+    Extract all relevant hotels from the search results based on the schema requested.
 
     SEARCH RESULTS:
     {hotel_results}
     """
 
-    response = llm.invoke(
-        [HumanMessage(content=prompt)]
-    )
-
-    # Convert JSON string to Python list
+    # 3. Invoke the structured LLM
     try:
-        hotels = json.loads(response.content)
-    except Exception:
-        hotels = []
+        response = structured_llm.invoke([HumanMessage(content=prompt)])
+        
+        # Convert the Pydantic object to a standard Python list of dictionaries
+        state["hotels_found"] = [
+            hotel.model_dump()
+            for hotel in response.hotels
+        ]
 
-    # Save hotels into state
-    state["hotels_found"] = hotels
+        # --- SIMULATE AVAILABILITY INJECTOR ---
+        trip_dates = []
+
+        current_date = datetime.strptime(
+            check_in,
+            "%Y-%m-%d"
+        )
+
+        end_date = datetime.strptime(
+            check_out,
+            "%Y-%m-%d"
+        )
+
+        while current_date < end_date:
+            trip_dates.append(
+                current_date.strftime("%Y-%m-%d")
+            )
+            current_date += timedelta(days=1)
+
+        for hotel in state["hotels_found"]:
+            hotel["available_dates"] = trip_dates
+        # --------------------------------------
+        
+    except Exception as e:
+        print(f"Extraction failed: {e}")
+        state["hotels_found"] = []
 
     return state
