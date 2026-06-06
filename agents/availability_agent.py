@@ -34,7 +34,15 @@ def availability_checker_agent(state: TravelState):
 
     if available_hotels:
         selected_hotel = available_hotels[0]
+    print(
+        f"\nAvailable Hotels: "
+        f"{len(available_hotels)}"
+    )
 
+    print(
+        f"Retry Count: "
+        f"{new_retry_count}"
+    )
     # Return updates
     return {
         "available_hotels": available_hotels,

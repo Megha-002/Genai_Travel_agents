@@ -72,7 +72,12 @@ def get_forecast(
     )
 
     return result
-
+print(
+    get_forecast(
+        "Paris",
+        "Oct 10-15"
+    )
+)
 if __name__ == "__main__":
 
     mcp.run(

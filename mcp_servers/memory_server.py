@@ -117,22 +117,19 @@ if __name__ == "__main__":
     # TEMP TESTS
 
     print(
-
         save_prefs(
-
-            "test_user",
-
-            "likes expensive hotels"
-
-        )
-
+        "test_user_1",
+        "likes beach resorts at bay"
     )
+)
+
+ 
  
     print(
 
         get_prefs(
 
-            "test_user"
+            "test_user_1"
 
         )
 

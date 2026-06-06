@@ -37,7 +37,11 @@ def search_hotels(
     )
 
     return str(result)
-
+print(
+    search_web(
+        "Top tourist attractions in Paris"
+    )
+)
 
 if __name__ == "__main__":
 

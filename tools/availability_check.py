@@ -23,9 +23,13 @@ def check_availability(hotels, check_in, check_out, max_budget):
 
     for hotel in hotels:
 
-        if hotel["price"] > max_budget:
-            continue
+        price = hotel.get(
+            "price",
+            99999
+        )
 
+        if price > max_budget:
+            continue
         hotel_dates = hotel.get("available_dates", [])
 
         is_available = all(
